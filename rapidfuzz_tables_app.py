@@ -1,17 +1,18 @@
 from rapidfuzz import process, fuzz
-import pyodbc
+import mysql.connector
 
-def connect_to_azure_sql(server, database, username, password):
-    connection_string = (
-        f"DRIVER={{ODBC Driver 17 for SQL Server}};"
-        f"SERVER={server};"
-        f"DATABASE={database};"
-        f"UID={username};"
-        f"PWD={password};"
-        "Encrypt=yes;"
-        "TrustServerCertificate=yes;"
-    )
-    return pyodbc.connect(connection_string)
+def conectar_bd(database):
+    try:
+        conexion = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            password="", 
+            database=database
+        )
+        return conexion
+    except mysql.connector.Error as error:
+        print(f"Error al conectar a MySQL: {error}")
+        return None
 
 def fuzzy_match(queryRecord, choices, score_cutoff=0):
     scorers = [fuzz.WRatio, fuzz.QRatio, fuzz.token_set_ratio, fuzz.ratio]
@@ -68,11 +69,8 @@ def fuzzy_match(queryRecord, choices, score_cutoff=0):
 
 
 def execute_dynamic_matching(params_dict, score_cutoff=0):
-    conn = connect_to_azure_sql(
-        server=params_dict.get("server", ""),
-        database=params_dict.get("database", ""),
-        username=params_dict.get("username", ""),
-        password=params_dict.get("password", "")
+    conn = conectar_bd(
+        database=params_dict.get("database", "")
     )
     cursor = conn.cursor()
 
@@ -120,17 +118,18 @@ def execute_dynamic_matching(params_dict, score_cutoff=0):
 
 
 params_dict = {
-    "server": "tu_server",
-    "database": "tu_database",
-    "username": "tu_usuario",
-    "password": "tu_contraseña",
+    "server": "localhost",
+    "database": "dbo",
+    "username": "root",
+    "password": "",
     "sourceSchema": "dbo",
-    "sourceTable": "tabla_origen",
-    "destSchema": "dbo",
-    "destTable": "tabla_destino",
+    "sourceTable": "Usuarios",
+    "destSchema": "crm",
+    "destTable": "Clientes",
     "src_dest_mappings": {
-        "nombre": "first_name",
-        "Ciudad": "City"
+        "first_name": "nombre",
+        "last_name": "apellido",
+        "email" : "email"
     }
 }
 
