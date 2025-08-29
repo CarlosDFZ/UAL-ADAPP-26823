@@ -43,7 +43,7 @@ Parametros:
 Retorno:
     Lista de diccionarios con las coincidencias encontradas que superen el umbral de 70%.
 
-Notas de optimización:
-- Se implementó inserción por lotes en las operaciones INSERT
-- Se optimizó el manejo de las conexiones usando context managers
-- El procesamiento de datos se realiza en bloques de 100 registros para un mejor uso de memoria
+Notas de optimización archivo insertMysql.py:
+- Se implementó inserción por lotes en las operaciones INSERT de la *función insertar_usuarios*
+- Se optimizó el manejo de las conexiones usando context managers en la función *conectar_bd*
+- Se agregó encoding UTF-8 en las funciones para abrir los archivos csv
