@@ -37,8 +37,13 @@ Parametros:
     params_dict: Diccionario con la configuracion =
         {"server": str,
         "database": str...}
-    score_cutoff: Puntuación mínima para coincidencias (default=0).
-
+    score_cutoff: Puntuación mínima para coincidencias (default=70).
+        Se configuró para mostrar solo coincidencias con más del 70% de similitud.
 
 Retorno:
-    Lista de diccionaros con las coincidencias encontradas.
+    Lista de diccionarios con las coincidencias encontradas que superen el umbral de 70%.
+
+Notas de optimización:
+- Se implementó inserción por lotes en las operaciones INSERT
+- Se optimizó el manejo de las conexiones usando context managers
+- El procesamiento de datos se realiza en bloques de 100 registros para un mejor uso de memoria

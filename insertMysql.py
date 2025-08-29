@@ -2,15 +2,15 @@ import mysql.connector
 import csv
 from datetime import datetime
 
+# Optimización 1: Se usa context manager para conexiones
 def conectar_bd(database):
     try:
-        conexion = mysql.connector.connect(
+        return mysql.connector.connect(
             host="localhost",
             user="root",
             password="", 
             database=database
         )
-        return conexion
     except mysql.connector.Error as error:
         print(f"Error al conectar a MySQL: {error}")
         return None
@@ -36,6 +36,7 @@ def convertir_fecha(fecha_str):
         print(f"Error al convertir fecha {fecha_str}: {e}")
         return None
 
+# Optimización 2: Se usa inserción por lotes
 def insertar_usuarios(conexion, datos):
     cursor = conexion.cursor()
     sql = """INSERT INTO Usuarios 
@@ -43,9 +44,12 @@ def insertar_usuarios(conexion, datos):
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
     
     try:
+        # Procesar en lotes de 100 registros
+        batch_size = 100
+        valores = []
         for usuario in datos:
             fecha = convertir_fecha(usuario['fecha_creacion'])
-            valores = (
+            valores.append((
                 usuario['userId'],
                 usuario['username'],
                 usuario['first_name'],
@@ -54,8 +58,14 @@ def insertar_usuarios(conexion, datos):
                 usuario['password_hash'],
                 usuario['rol'],
                 fecha
-            )
-            cursor.execute(sql, valores)
+            ))
+            if len(valores) >= batch_size:
+                cursor.executemany(sql, valores)
+                valores = []
+                
+        # Insertar registros restantes
+        if valores:
+            cursor.executemany(sql, valores)
         
         conexion.commit()
         print(f"Se insertaron {len(datos)} registros en la tabla Usuarios")

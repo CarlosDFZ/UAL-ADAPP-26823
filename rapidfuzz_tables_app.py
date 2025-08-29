@@ -13,7 +13,7 @@ def conectar_bd(database):
     except mysql.connector.Error as error:
         print(f"Error al conectar a MySQL: {error}")
         return None
-
+    
 def fuzzy_match(queryRecord, choices, score_cutoff=0):
     scorers = [fuzz.WRatio, fuzz.QRatio, fuzz.token_set_ratio, fuzz.ratio]
     processor = lambda x: str(x).lower()
@@ -133,5 +133,6 @@ params_dict = {
     }
 }
 
-resultados = execute_dynamic_matching(params_dict, score_cutoff=80)
+# Se cambió el score_cutoff a 70
+resultados = execute_dynamic_matching(params_dict, score_cutoff=70)
 print(resultados)
