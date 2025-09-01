@@ -1,4 +1,5 @@
 from fuzz_functions import execute_dynamic_matching
+import pandas as pd
 
 
 params_dict = {
@@ -19,4 +20,5 @@ params_dict = {
 
 # Se cambió el score_cutoff a 70
 resultados = execute_dynamic_matching(params_dict, score_cutoff=70)
-print(resultados)
+df = pd.DataFrame(resultados)
+print(df)
