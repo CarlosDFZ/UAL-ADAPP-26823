@@ -47,3 +47,24 @@ Notas de optimización archivo insertMysql.py:
 - Se implementó inserción por lotes en las operaciones INSERT de la *función insertar_usuarios*
 - Se optimizó el manejo de las conexiones usando context managers en la función *conectar_bd*
 - Se agregó encoding UTF-8 en las funciones para abrir los archivos csv
+
+## Procedimientos Almacenados
+
+El proyecto utiliza los siguientes procedimientos almacenados para la inserción de datos:
+
+### sp_insertUsuariosFromCSV_dbo_26823
+- **Propósito**: Insertar datos de usuarios desde archivos CSV a la tabla Usuarios
+- **Base de datos**: dbo
+- **Parámetros**: userId, username, first_name, last_name, email, password_hash, rol, fecha_creacion
+
+### sp_insertClientesFromCSV_crm_26823
+- **Propósito**: Insertar datos de clientes desde archivos CSV a la tabla Clientes
+- **Base de datos**: crm
+- **Parámetros**: cliente_id, nombre, apellido, email, FechaRegistro
+
+### Ejecución de Procedimientos
+Los procedimientos se ejecutan automáticamente desde el script Python `insertMysql.py` durante la importación de datos.
+
+### Instalación
+1. Ejecutar los scripts SQL en sus respectivas bases de datos
+2. Asegurarse de que el usuario MySQL tenga permisos para ejecutar procedimientos almacenados

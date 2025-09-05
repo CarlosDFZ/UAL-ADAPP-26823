@@ -2,7 +2,7 @@ import mysql.connector
 import csv
 from datetime import datetime
 
-# Optimización 1: Se usa context manager para conexiones
+
 def conectar_bd(database):
     try:
         return mysql.connector.connect(
@@ -28,7 +28,6 @@ def cargar_csv(archivo):
         return None
 
 def convertir_fecha(fecha_str):
-
     try:
         fecha_obj = datetime.strptime(fecha_str, '%d/%m/%Y %H:%M')
         return fecha_obj.strftime('%Y-%m-%d %H:%M:%S')
@@ -36,39 +35,31 @@ def convertir_fecha(fecha_str):
         print(f"Error al convertir fecha {fecha_str}: {e}")
         return None
 
-# Optimización 2: Se usa inserción por lotes
 def insertar_usuarios(conexion, datos):
     cursor = conexion.cursor()
-    sql = """INSERT INTO Usuarios 
-            (userId, username, first_name, last_name, email, password_hash, rol, fecha_creacion)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
     
     try:
         # Procesar en lotes de 100 registros
         batch_size = 100
-        valores = []
-        for usuario in datos:
-            fecha = convertir_fecha(usuario['fecha_creacion'])
-            valores.append((
-                usuario['userId'],
-                usuario['username'],
-                usuario['first_name'],
-                usuario['last_name'],
-                usuario['email'],
-                usuario['password_hash'],
-                usuario['rol'],
-                fecha
-            ))
-            if len(valores) >= batch_size:
-                cursor.executemany(sql, valores)
-                valores = []
+        for i in range(0, len(datos), batch_size):
+            batch = datos[i:i+batch_size]
+            
+            for usuario in batch:
+                fecha = convertir_fecha(usuario['fecha_creacion'])
                 
-        # Insertar registros restantes
-        if valores:
-            cursor.executemany(sql, valores)
+                cursor.callproc('sp_insertUsuariosFromCSV_dbo_26823', [
+                    usuario['userId'],
+                    usuario['username'],
+                    usuario['first_name'],
+                    usuario['last_name'],
+                    usuario['email'],
+                    usuario['password_hash'],
+                    usuario['rol'],
+                    fecha
+                ])
         
         conexion.commit()
-        print(f"Se insertaron {len(datos)} registros en la tabla Usuarios")
+        print(f"Se insertaron {len(datos)} registros en la tabla Usuarios usando procedimiento almacenado")
     except mysql.connector.Error as error:
         print(f"Error al insertar usuarios: {error}")
         conexion.rollback()
@@ -77,24 +68,22 @@ def insertar_usuarios(conexion, datos):
 
 def insertar_clientes(conexion, datos):
     cursor = conexion.cursor()
-    sql = """INSERT INTO Clientes 
-            (cliente_id, nombre, apellido, email, FechaRegistro)
-            VALUES (%s, %s, %s, %s, %s)"""
     
     try:
         for cliente in datos:
             fecha = convertir_fecha(cliente['fecha_registro'])
-            valores = (
+            
+            # Llamar al procedimiento almacenado
+            cursor.callproc('sp_insertClientesFromCSV_crm_26823', [
                 cliente['cliente_id'],
                 cliente['nombre'],
                 cliente['apellido'],
                 cliente['email'],
                 fecha
-            )
-            cursor.execute(sql, valores)
+            ])
         
         conexion.commit()
-        print(f"Se insertaron {len(datos)} registros en la tabla Clientes")
+        print(f"Se insertaron {len(datos)} registros en la tabla Clientes usando procedimiento almacenado")
     except mysql.connector.Error as error:
         print(f"Error al insertar clientes: {error}")
         conexion.rollback()
