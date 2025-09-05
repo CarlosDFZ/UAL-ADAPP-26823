@@ -1,6 +1,12 @@
 from fuzz_functions import execute_dynamic_matching
 import pandas as pd
 import os
+import mysql.connector
+import csv
+from datetime import datetime
+
+
+EXPORT_FOLDER = "exportaciones"
 
 def dataFrameOrDict(results, type='df', num_filas=None, columnas_renombradas=None):
     if not results:
@@ -12,40 +18,32 @@ def dataFrameOrDict(results, type='df', num_filas=None, columnas_renombradas=Non
     processed_results = []
     for item in results:
         new_item = item.copy()
-        
         if 'score' in new_item:
             new_item['score'] = f"{new_item['score']}%"
-        
         if 'first_name' in new_item and 'last_name' in new_item:
             new_item['nombre_completo'] = f"{new_item['first_name']} {new_item['last_name']}"
         elif 'first_name' in new_item:
             new_item['nombre_completo'] = new_item['first_name']
         elif 'last_name' in new_item:
             new_item['nombre_completo'] = new_item['last_name']
-        
         processed_results.append(new_item)
     
     if type == "df":
         df = pd.DataFrame(processed_results)
         if columnas_renombradas:
             rename_dict = {orig: nuevo for orig, nuevo in columnas_renombradas}
-            
             columnas_especiales = []
             score_in_renamed = any(orig == 'score' for orig, _ in columnas_renombradas)
             nombre_completo_in_renamed = any(orig == 'nombre_completo' for orig, _ in columnas_renombradas)
-            
             if not score_in_renamed:
                 columnas_especiales.append('score')
             if not nombre_completo_in_renamed and 'nombre_completo' in df.columns:
                 columnas_especiales.append('nombre_completo')
-            
             columnas_a_mostrar = [orig for orig, _ in columnas_renombradas] + columnas_especiales
-            
             columnas_validas = [col for col in columnas_a_mostrar if col in df.columns]
             if not columnas_validas:
                 print("Ninguna de las columnas seleccionadas existe en el DataFrame.")
                 return
-            
             df = df[columnas_validas]
             df = df.rename(columns=rename_dict)
         print(df)
@@ -57,7 +55,6 @@ def dataFrameOrDict(results, type='df', num_filas=None, columnas_renombradas=Non
                 for orig, nuevo in columnas_renombradas:
                     if orig in item:
                         item_filtrado[nuevo] = item[orig]
-                # Aqui siempre se incluye el score y nombre completo
                 if 'score' in item:
                     item_filtrado['score'] = item['score']
                 if 'nombre_completo' in item:
@@ -65,8 +62,6 @@ def dataFrameOrDict(results, type='df', num_filas=None, columnas_renombradas=Non
                 print(item_filtrado)
             else:
                 print(item)
-
-EXPORT_FOLDER = "exportaciones"
 
 def guardar_carpeta():
     if not os.path.exists(EXPORT_FOLDER):
@@ -84,42 +79,31 @@ def guardar_csv(results, nombre_archivo="resultados.csv", num_filas=None, column
     processed_results = []
     for item in results:
         new_item = item.copy()
-        
-        # Aqui hago que el score se ponga en porcentaje
         if 'score' in new_item:
             new_item['score'] = f"{new_item['score']}%"
-        
-        # Se combina el nombre y apellido si existen
         if 'first_name' in new_item and 'last_name' in new_item:
             new_item['nombre_completo'] = f"{new_item['first_name']} {new_item['last_name']}"
         elif 'first_name' in new_item:
             new_item['nombre_completo'] = new_item['first_name']
         elif 'last_name' in new_item:
             new_item['nombre_completo'] = new_item['last_name']
-        
         processed_results.append(new_item)
     
     df = pd.DataFrame(processed_results)
-    
     if columnas_renombradas:
         rename_dict = {orig: nuevo for orig, nuevo in columnas_renombradas}
-        
         columnas_especiales = []
         score_in_renamed = any(orig == 'score' for orig, _ in columnas_renombradas)
         nombre_completo_in_renamed = any(orig == 'nombre_completo' for orig, _ in columnas_renombradas)
-        
         if not score_in_renamed:
             columnas_especiales.append('score')
         if not nombre_completo_in_renamed and 'nombre_completo' in df.columns:
             columnas_especiales.append('nombre_completo')
-        
         columnas_a_guardar = [orig for orig, _ in columnas_renombradas] + columnas_especiales
-        
         columnas_validas = [col for col in columnas_a_guardar if col in df.columns]
         if not columnas_validas:
             print("Ninguna de las columnas seleccionadas existe en el DataFrame.")
             return
-        
         df = df[columnas_validas]
         df = df.rename(columns=rename_dict)
     
@@ -138,48 +122,112 @@ def guardar_excel(results, nombre_archivo="resultados.xlsx", num_filas=None, col
     processed_results = []
     for item in results:
         new_item = item.copy()
-        
-        # Aqui hago que el score se ponga en porcentaje
         if 'score' in new_item:
             new_item['score'] = f"{new_item['score']}%"
-        
-        # Se combina el nombre y apellido si existen
         if 'first_name' in new_item and 'last_name' in new_item:
             new_item['nombre_completo'] = f"{new_item['first_name']} {new_item['last_name']}"
         elif 'first_name' in new_item:
             new_item['nombre_completo'] = new_item['first_name']
         elif 'last_name' in new_item:
             new_item['nombre_completo'] = new_item['last_name']
-        
         processed_results.append(new_item)
     
     df = pd.DataFrame(processed_results)
-    
     if columnas_renombradas:
         rename_dict = {orig: nuevo for orig, nuevo in columnas_renombradas}
-        
         columnas_especiales = []
         score_in_renamed = any(orig == 'score' for orig, _ in columnas_renombradas)
         nombre_completo_in_renamed = any(orig == 'nombre_completo' for orig, _ in columnas_renombradas)
-        
         if not score_in_renamed:
             columnas_especiales.append('score')
         if not nombre_completo_in_renamed and 'nombre_completo' in df.columns:
             columnas_especiales.append('nombre_completo')
-        
         columnas_a_guardar = [orig for orig, _ in columnas_renombradas] + columnas_especiales
-        
         columnas_validas = [col for col in columnas_a_guardar if col in df.columns]
         if not columnas_validas:
             print("Ninguna de las columnas seleccionadas existe en el DataFrame.")
             return
-        
         df = df[columnas_validas]
         df = df.rename(columns=rename_dict)
     
     ruta = os.path.join(EXPORT_FOLDER, nombre_archivo)
     df.to_excel(ruta, index=False)
     print(f"Resultados guardados en '{ruta}'")
+
+def separar_matched_records(results, score_rec=97):  
+    matched_records = []
+    unmatched_records = []
+    for item in results:
+        if 'score' in item and isinstance(item['score'], (int, float)):
+            if item['score'] >= score_rec:
+                matched_records.append(item)
+            else:
+                unmatched_records.append(item)
+        else:
+            unmatched_records.append(item)
+    return matched_records, unmatched_records
+
+
+
+def conectar_mysql(database):
+    try:
+        return mysql.connector.connect(
+            host="localhost",
+            user="root",
+            password="",
+            database=database
+        )
+    except mysql.connector.Error as e:
+        print(f"Error al conectar a MySQL: {e}")
+        return None
+
+def importar_datos(archivo, db):
+    conexion = conectar_mysql(db)
+    if not conexion:
+        return
+
+    with open(archivo, 'r', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        columnas = reader.fieldnames
+        columnas_sql = [col.replace(' ', '_').replace('(', '').replace(')', '').replace('%', '') for col in columnas]
+
+        cursor = conexion.cursor()
+        tabla = "match_records"  # Tabla fija
+
+        try:
+            # Verificar si la tabla existe
+            cursor.execute(f"SHOW TABLES LIKE '{tabla}'")
+            existe = cursor.fetchone()
+
+            if existe:
+                print(f"La tabla '{tabla}' ya existe. Será eliminada y recreada.")
+                cursor.execute(f"DROP TABLE IF EXISTS {tabla}")
+            else:
+                print(f"La tabla '{tabla}' no existe. Será creada automáticamente.")
+
+            # Crear la tabla
+            columnas_def = ", ".join([f"{col} VARCHAR(255)" for col in columnas_sql])
+            crear_sql = f"CREATE TABLE {tabla} ({columnas_def})"
+            cursor.execute(crear_sql)
+
+            # Insertar registros
+            sql_insert = f"INSERT INTO {tabla} ({', '.join(columnas_sql)}) VALUES ({', '.join(['%s']*len(columnas_sql))})"
+            valores = []
+            for row in reader:
+                fila = [row[col] for col in columnas]
+                valores.append(fila)
+
+            cursor.executemany(sql_insert, valores)
+            conexion.commit()
+            print(f"{len(valores)} registros insertados en la tabla '{tabla}' de la base '{db}'.")
+
+        except mysql.connector.Error as e:
+            print(f"Error al importar datos: {e}")
+            conexion.rollback()
+        finally:
+            cursor.close()
+            conexion.close()
+
 
 params_dict = {
     "server": "localhost",
@@ -197,43 +245,58 @@ params_dict = {
     }
 }
 
-# Se cambió el score_cutoff a 70
+# Ejecutar matching
 resultados = execute_dynamic_matching(params_dict, score_cutoff=70)
+matched, unmatched = separar_matched_records(resultados, score_rec=97)
+print(f"Registros matched mayor a 97%: {len(matched)}")
+print(f"Registros unmatched menor a 97%: {len(unmatched)}")
+
+# Selección del usuario
+while True:
+    tipo_datos = input("¿Qué datos quieres procesar? (matched/unmatched/todos): ").lower()
+    if tipo_datos in ["matched", "unmatched", "todos"]:
+        break
+    else:
+        print("Opción no válida. Por favor, elige 'matched', 'unmatched' o 'todos'.")
+
+if tipo_datos == "matched":
+    datos_a_procesar = matched
+    sufijo_archivo = "_matched"
+elif tipo_datos == "unmatched":
+    datos_a_procesar = unmatched
+    sufijo_archivo = "_unmatched"
+else:
+    datos_a_procesar = resultados
+    sufijo_archivo = ""
 
 while True:
     formato = input("¿Quieres un DataFrame o un diccionario? (df/dic): ")
     if formato in ["df", "dic"]:
-        df_temp = pd.DataFrame(resultados)
-        print("\nColumnas disponibles (incluyendo nuevas columnas automáticas):")
-        
+        df_temp = pd.DataFrame(datos_a_procesar)
         columnas_especiales = []
         if 'first_name' in df_temp.columns or 'last_name' in df_temp.columns:
             columnas_especiales.append('nombre_completo')
         if 'score' in df_temp.columns:
             columnas_especiales.append('score (%)')
-        
         todas_columnas = list(df_temp.columns) + columnas_especiales
-        
+
         for i, columna in enumerate(todas_columnas, 1):
             if columna in columnas_especiales:
                 print(f"{i}. {columna} (automática)")
             else:
                 print(f"{i}. {columna}")
-        
+
         while True:
             seleccion = input("\nSelecciona los números de las columnas que deseas (separados por comas): ")
             if not seleccion.strip():
                 print("Debes seleccionar al menos una columna. Por favor, elige los números correspondientes.")
                 continue
-            
             try:
                 indices = [int(x.strip()) - 1 for x in seleccion.split(',')]
                 columnas_seleccionadas = [todas_columnas[i] for i in indices if 0 <= i < len(todas_columnas)]
-                
                 if not columnas_seleccionadas:
                     print("No se seleccionaron columnas válidas. Por favor, intenta nuevamente.")
                     continue
-                
                 columnas_reales = []
                 for col in columnas_seleccionadas:
                     if col == 'score (%)':
@@ -242,23 +305,19 @@ while True:
                         columnas_reales.append('nombre_completo')
                     else:
                         columnas_reales.append(col)
-                
                 break    
             except (ValueError, IndexError):
                 print("Selección no válida. Por favor, introduce números separados por comas.")
 
-        # Aqio se permite al usuario renombrar cada columna
         columnas_renombradas = []
         print("\nAhora puedes renombrar cada columna seleccionada:")
         for columna_real in columnas_reales:
             nombre_display = columna_real
             if columna_real == 'score':
                 nombre_display = 'score (%)'
-            
             nuevo_nombre = input(f"Renombrar '{nombre_display}' a: ").strip()
             if not nuevo_nombre:
                 nuevo_nombre = nombre_display
-            
             columnas_renombradas.append((columna_real, nuevo_nombre))
 
         while True:
@@ -277,15 +336,36 @@ while True:
                 num_filas = None
                 break
         
-        nombre_csv = input("Nombre del archivo CSV (Enter para 'resultados.csv'): ")
-        nombre_csv = nombre_csv if nombre_csv.strip() else "resultados.csv"
-        
-        nombre_excel = input("Nombre del archivo Excel (Enter para 'resultados.xlsx'): ")
-        nombre_excel = nombre_excel if nombre_excel.strip() else "resultados.xlsx"
-        
-        dataFrameOrDict(resultados, formato, num_filas, columnas_renombradas)
-        guardar_csv(resultados, nombre_csv, num_filas, columnas_renombradas)
-        guardar_excel(resultados, nombre_excel, num_filas, columnas_renombradas)
+        nombre_base_csv = input("Nombre base del archivo CSV (Enter para 'resultados'): ").strip() or "resultados"
+        nombre_csv = f"{nombre_base_csv}{sufijo_archivo}.csv"
+        nombre_base_excel = input("Nombre base del archivo Excel (Enter para 'resultados'): ").strip() or "resultados"
+        nombre_excel = f"{nombre_base_excel}{sufijo_archivo}.xlsx"
+
+        dataFrameOrDict(datos_a_procesar, formato, num_filas, columnas_renombradas)
+        guardar_csv(datos_a_procesar, nombre_csv, num_filas, columnas_renombradas)
+        guardar_excel(datos_a_procesar, nombre_excel, num_filas, columnas_renombradas)
+
+        if tipo_datos != "todos":
+            exportar_otro = input(f"¿Quieres también exportar los datos {'unmatched' if tipo_datos == 'matched' else 'matched'}? (s/n): ").lower()
+            if exportar_otro == "s":
+                otros_datos = unmatched if tipo_datos == "matched" else matched
+                otro_sufijo = "_unmatched" if tipo_datos == "matched" else "_matched"
+                otro_nombre_csv = f"{nombre_base_csv}{otro_sufijo}.csv"
+                otro_nombre_excel = f"{nombre_base_excel}{otro_sufijo}.xlsx"
+                guardar_csv(otros_datos, otro_nombre_csv, num_filas, columnas_renombradas)
+                guardar_excel(otros_datos, otro_nombre_excel, num_filas, columnas_renombradas)
         break
     else:
         print("Formato no válido. Por favor, elige 'df' o 'dic'.")
+
+
+while True:
+    importar = input("¿Quieres importar algún archivo CSV a la base de datos? (s/n): ").lower()
+    if importar in ["s", "n"]:
+        break
+    else:
+        print("Opción no válida. Ingresa 's' o 'n'.")
+
+if importar == "s":
+    ruta_csv = input("Ruta del archivo CSV a importar: ").strip()
+    importar_datos(ruta_csv, "dbo") 

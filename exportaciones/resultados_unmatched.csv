@@ -1,0 +1,11 @@
+﻿first_name,last_name,email,match_query,score,nombre_completo
+David,Downs,user1@example.com,DavidDownsuser1@example.com,77.19298245614034%,David Downs
+Robert,Davis,user2@example.com,RobertDavisuser2@example.com,82.75862068965517%,Robert Davis
+Mary,Wells,user3@example.com,MaryWellsuser3@example.com,80.0%,Mary Wells
+Bethany,Harmon,user4@example.com,BethanyHarmonuser4@example.com,77.41935483870968%,Bethany Harmon
+Brenda,Meyers,user5@example.com,BrendaMeyersuser5@example.com,81.9672131147541%,Brenda Meyers
+Yvonne,Jensen,user6@example.com,YvonneJensenuser6@example.com,75.0%,Yvonne Jensen
+Joe,Ferguson,user7@example.com,JoeFergusonuser7@example.com,75.86206896551724%,Joe Ferguson
+Jessica,Baker,user55@example.com,JessicaBakeruser55@example.com,73.6842105263158%,Jessica Baker
+Thomas,Stokes,user56@example.com,ThomasStokesuser56@example.com,76.19047619047619%,Thomas Stokes
+Scott,Leonard,user57@example.com,ScottLeonarduser57@example.com,72.1311475409836%,Scott Leonard
