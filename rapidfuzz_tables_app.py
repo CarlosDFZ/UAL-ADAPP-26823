@@ -184,7 +184,7 @@ def conectar_mysql(database):
     
 def insertar_matched_a_mysql(matched_records, table_name="all_matched_records", database="dbo"):
     """
-    Inserta registros matched en la tabla especificada
+    Inserta registros matched en la tabla especificada con número de control y muestra TODOS los registros
     """
     if not matched_records:
         print(f"No hay registros matched para insertar en {table_name}.")
@@ -206,11 +206,12 @@ def insertar_matched_a_mysql(matched_records, table_name="all_matched_records", 
                 cursor.callproc("sp_eliminar_tabla", (table_name,))
                 conexion.commit()
             except:
-                pass  # Ignorar errores si la tabla no existe
+                pass
         
-        # 2. Crear nueva tabla si no existe - CON TIMESTAMP AL FINAL
+        # 2. Crear nueva tabla si no existe - CON NÚMERO DE CONTROL Y TIMESTAMP
         columnas_def = """
             id INT AUTO_INCREMENT PRIMARY KEY,
+            control_number VARCHAR(10) NOT NULL UNIQUE,
             source_first_name VARCHAR(255),
             source_last_name VARCHAR(255),
             source_email VARCHAR(255),
@@ -222,18 +223,40 @@ def insertar_matched_a_mysql(matched_records, table_name="all_matched_records", 
             cursor.callproc("sp_crear_tabla", (table_name, columnas_def))
             conexion.commit()
         except:
-            # Si la tabla ya existe, continuar
             pass
         
-        # 3. Preparar datos para inserción - TIMESTAMP SE GENERA AUTOMÁTICAMENTE
+        # 3. Obtener el último número de control para continuar la secuencia
+        last_control_number = "DR0000"
+        try:
+            cursor.execute(f"SELECT control_number FROM {table_name} ORDER BY id DESC LIMIT 1")
+            last_record = cursor.fetchone()
+            if last_record:
+                last_control_number = last_record[0]
+        except:
+            # Si la tabla está vacía o no existe, empezar desde DR0001
+            pass
+        
+        # Extraer el número secuencial del último control_number
+        if last_control_number.startswith('DR'):
+            try:
+                last_number = int(last_control_number[2:])
+            except:
+                last_number = 0
+        else:
+            last_number = 0
+        
+        # 4. Preparar datos para inserción - CON NÚMERO DE CONTROL
         columnas = [
-            "source_first_name", "source_last_name", "source_email",
+            "control_number", "source_first_name", "source_last_name", "source_email",
             "match_score", "source_full_name"
         ]
         columnas_str = ", ".join(columnas)
         
         valores_sql_list = []
-        for record in matched_records:
+        for i, record in enumerate(matched_records):
+            # Generar número de control secuencial
+            control_number = f"DR{last_number + i + 1:04d}"
+            
             # Mapear campos individuales
             source_first_name = record.get('first_name', '') or record.get('source_first_name', '')
             source_last_name = record.get('last_name', '') or record.get('source_last_name', '')
@@ -247,6 +270,7 @@ def insertar_matched_a_mysql(matched_records, table_name="all_matched_records", 
             match_score = record.get('score', 0)
             
             valores = [
+                control_number,
                 source_first_name,
                 source_last_name,
                 source_email,
@@ -267,24 +291,31 @@ def insertar_matched_a_mysql(matched_records, table_name="all_matched_records", 
         
         valores_sql = ",".join(valores_sql_list)
         
-        # 4. Insertar usando stored procedure
+        # 5. Insertar usando stored procedure
         cursor.callproc("sp_insertar_registros", (table_name, columnas_str, valores_sql))
         conexion.commit()
         
         print(f"Se insertaron {len(matched_records)} registros en '{table_name}'")
         
-        # Mostrar preview de los datos insertados
-        cursor.execute(f"SELECT source_first_name, source_last_name, source_full_name, match_score, match_timestamp FROM {table_name} LIMIT 47")
-        preview_data = cursor.fetchall()
-        print(f"\nPreview de los registros en '{table_name}':")
-        print("First Name | Last Name | Full Name | Score | Timestamp")
-        print("-" * 70)
-        for row in preview_data:
-            first_name, last_name, full_name, score, timestamp = row
-            print(f"{first_name or 'N/A':10} | {last_name or 'N/A':10} | {full_name or 'N/A':15} | {score:>5}% | {timestamp}")
+        # MOSTRAR TODOS LOS REGISTROS INSERTADOS CON NÚMERO DE CONTROL
+        cursor.execute(f"SELECT control_number, source_first_name, source_last_name, source_full_name, match_score, match_timestamp FROM {table_name}")
+        all_data = cursor.fetchall()
+        
+        print(f"\n=== TODOS LOS {len(all_data)} REGISTROS EN '{table_name.upper()}' ===")
+        print("Control No. | First Name | Last Name | Full Name | Score | Timestamp")
+        print("-" * 90)
+        
+        for row in all_data:
+            control_num, first_name, last_name, full_name, score, timestamp = row
+            print(f"{control_num:10} | {first_name or 'N/A':10} | {last_name or 'N/A':10} | {full_name or 'N/A':15} | {score:>5}% | {timestamp}")
+        
+        print("-" * 90)
+        print(f"Total: {len(all_data)} registros")
         
     except Exception as e:
         print(f"Error al insertar registros en {table_name}: {e}")
+        import traceback
+        traceback.print_exc()
         conexion.rollback()
     finally:
         cursor.close()
@@ -304,10 +335,15 @@ def importar_datos(archivo, db):
         tabla = "match_records"
 
         try:
+            # Eliminar tabla existente
             cursor.callproc("sp_eliminar_tabla", (tabla,))
             conexion.commit()
 
-            columnas_def = ", ".join([f"{col} VARCHAR(255)" for col in columnas_sql])
+            # Crear nueva tabla con control_number AL INICIO y match_timestamp al final
+            columnas_def = "control_number VARCHAR(10) NOT NULL UNIQUE, "
+            columnas_def += ", ".join([f"{col} VARCHAR(255)" for col in columnas_sql])
+            # Agregar timestamp al final
+            columnas_def += ", match_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
             cursor.callproc("sp_crear_tabla", (tabla, columnas_def))
             conexion.commit()
 
@@ -316,19 +352,46 @@ def importar_datos(archivo, db):
                 fila = [row[col] if row[col] is not None and row[col] != '' else None for col in columnas]
                 valores.append(fila)
 
+            # Obtener el último número de control para continuar la secuencia
+            last_control_number = "DR0000"
+            try:
+                cursor.execute(f"SELECT control_number FROM {tabla} ORDER BY id DESC LIMIT 1")
+                last_record = cursor.fetchone()
+                if last_record:
+                    last_control_number = last_record[0]
+            except:
+                pass
+
+            # Extraer el número secuencial del último control_number
+            if last_control_number.startswith('DR'):
+                try:
+                    last_number = int(last_control_number[2:])
+                except:
+                    last_number = 0
+            else:
+                last_number = 0
+
             valores_sql_list = []
-            for fila in valores:
-                valores_fila = []
+            for i, fila in enumerate(valores):
+                # Generar número de control secuencial
+                control_number = f"DR{last_number + i + 1:04d}"
+                
+                # Formatear valores para SQL (control_number AL INICIO)
+                valores_fila = [f"'{control_number}'"]  # Control number primero
                 for valor in fila:
                     if valor is None:
                         valores_fila.append("NULL")
                     else:
                         valor_escaped = str(valor).replace("'", "''")
                         valores_fila.append(f"'{valor_escaped}'")
+                # El timestamp se genera automáticamente, no necesita ser incluido
+                
                 valores_sql_list.append("(" + ",".join(valores_fila) + ")")
             
             valores_sql = ",".join(valores_sql_list)
-            columnas_sql_str = ", ".join(columnas_sql)
+            
+            # Preparar los nombres de columnas para la inserción (control_number AL INICIO)
+            columnas_sql_str = "control_number, " + ", ".join(columnas_sql)
 
             cursor.callproc("sp_insertar_registros", (tabla, columnas_sql_str, valores_sql))
             conexion.commit()
@@ -361,6 +424,9 @@ def importar_datos(archivo, db):
 
         except mysql.connector.Error as e:
             print(f"Error al importar datos: {e}")
+            conexion.rollback()
+        except Exception as e:
+            print(f"Error general: {e}")
             conexion.rollback()
         finally:
             cursor.close()
