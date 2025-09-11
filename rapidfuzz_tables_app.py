@@ -1,4 +1,4 @@
-from fuzz_functions import execute_dynamic_matching
+from fuzz_functions import execute_dynamic_matching_weighted
 import pandas as pd
 import os
 import mysql.connector
@@ -450,7 +450,8 @@ params_dict = {
 }
 
 # Ejecutar matching
-resultados = execute_dynamic_matching(params_dict, score_cutoff=70)
+pesos_personalizados = {'first_name': 2, 'last_name': 3, 'email': 5}
+resultados = execute_dynamic_matching_weighted(params_dict, score_cutoff=70, column_weights=pesos_personalizados)
 matched, unmatched = separar_matched_records(resultados, score_rec=97)
 print(f"Registros matched mayor a 97%: {len(matched)}")
 print(f"Registros unmatched menor a 97%: {len(unmatched)}")
