@@ -1,0 +1,39 @@
+Observe how the algorithm finds matches based on text similarity.
+Create or find data scenarios to answer the following questions:
+
+1. How does the algorithm behave if there are typos in the LastName? (e.g."Perezz vs Perez")
+    El algoritmo detectó una coincidencia alta porque la diferencia es solo una letra extra “z” y el score 
+    fue elevado asi que esto muestra que el algoritmo logra tolerar pequeños errores tipográficos y aun así 
+    considerar los registros como un match probable.    
+
+2. What if accents or special characters are missing (e.g.. "Pérez" vs "Perez")?
+    El algoritmo también generó un score alto, ya que la única diferencia era el acento. El resultado 
+    muestra que los acentos no cambian mucho la similitud, pero pueden reducir el puntaje. 
+    El algoritmo trata “Pérez” y “Perez” casi igual.
+
+3. If two records get a very similar score, how should the algorithm decide which one is the best match?
+    En el caso de Carlos Díaz, tanto “Dias” como “Diez” tuvieron score similares porque ambos apellidos son diferentes
+    en solo una letra. Aquí el algoritmo no puede decidir cuál es la mejor coincidencia por lo que se prioriza el email 
+    exacto para seleccionar el mejor match.
+
+4. What happens if the Name matches but the Email is very different?
+    El algoritmo reconoce la coincidencia en nombre y apellido, pero al ser el correo distinto el score bajó. 
+    Esto muestra que si un campo clave como el email es diferente, el algoritmo lo penaliza aunque el resto coincida.
+
+5. What are the limitations of treating all columns with the same importance?
+    En el caso de Pedro López, donde el nombre y apellido son idénticos pero el correo cambia, el algoritmo asigna el mismo peso 
+    a todas las columnas. Esto hace que el correo (aunque es muy distinto) no invalide la coincidencia y el registro aparezca como 
+    un match.
+
+6. Can you think of real situations (e.g., customer databases, hospital records, e-commerce)
+    where fuzzy matching might create problems if all columns are treated equally?
+        Puede generar problemas en situaciones donde algunos datos son importantes para identificar un registro de forma única:
+        -Bases de clientes: Dos personas con el mismo nombre y apellido pero correos distintos podrían ser la misma persona, 
+        generando duplicados o errores en envíos de correo.
+        -Historial hospitalario: Pacientes con nombres similares podrían confundirse, provocando que se asignen diagnósticos o 
+        tratamientos incorrectos.
+        -E-commerce: Pedidos de clientes distintos con nombres parecidos podrían mezclarse, causando errores en envíos o facturación.
+
+    
+Cambiar el matched score de rapidfuzz_tables_app.py a 70 para obtener los resultados de las comparaciones
+de este archivo txt.
