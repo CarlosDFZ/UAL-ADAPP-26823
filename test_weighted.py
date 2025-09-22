@@ -19,7 +19,8 @@ params_dict = {
 }
 
 # Pesos personalizados
-pesos_personalizados = {'first_name': 2, 'last_name': 3, 'email': 5}
+from config import MATCHING_WEIGHTS
+pesos_personalizados = MATCHING_WEIGHTS
 total_pesos = sum(pesos_personalizados.values())
 
 print("INICIANDO PRUEBA DEL SISTEMA DE PONDERACION")
@@ -216,6 +217,4 @@ print(f"Registros procesados: {len(df_comparativo)}")
 print(f"Diferencias significativas: {len(df_diferencias)}")
 print(f"Cambios de categoria: {len(cambios_categoria)}")
 print(f"\nPesos aplicados: {pesos_personalizados}")
-print(f"Formula: (nombre×2 + apellido×3 + email×5) ÷ 10")
-print("\nEl sistema muestra claramente contra que se compara cada registro")
-print("y como los pesos afectan el resultado final.")
+print(f"Formula: (nombrex{MATCHING_WEIGHTS['first_name']} + apellido×{MATCHING_WEIGHTS['last_name']} + email×{MATCHING_WEIGHTS['email']}) ÷ {total_pesos}")

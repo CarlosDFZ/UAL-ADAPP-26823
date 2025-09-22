@@ -117,10 +117,19 @@ def execute_dynamic_matching(params_dict, score_cutoff=0):
     return matching_records
 
 def fuzzy_match_weighted(queryRecord, choices, score_cutoff=0, column_weights=None):
-
+    
+    from manejo_peso import obtener_pesos_columnas
+    from sincronizar_peso import sincronizar_pesos
+    
+    sincronizar_pesos()
+    
     if not column_weights:
-        # Pesos por defecto
-        column_weights = {'first_name': 2, 'last_name': 3, 'email': 5}
+        weights,  = obtener_pesos_columnas()
+        if not weights:
+            from config import MATCHING_WEIGHTS
+            column_weights = MATCHING_WEIGHTS
+        else:
+            column_weights = weights
     
     # Procesar los datos
     choices_data = []
