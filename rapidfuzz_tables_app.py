@@ -462,14 +462,14 @@ def inicializar_sistema():
             cursor_dbo.execute("""
                 SELECT first_name, last_name, email 
                 FROM Usuarios 
-                LIMIT 2
+                LIMIT 5
             """)
             usuarios = cursor_dbo.fetchall()
             
             cursor_crm.execute("""
                 SELECT nombre, apellido, email 
                 FROM Clientes 
-                LIMIT 100
+                LIMIT 200
             """)
             clientes = cursor_crm.fetchall()
             
